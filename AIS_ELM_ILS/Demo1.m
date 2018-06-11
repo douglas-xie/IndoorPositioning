@@ -1,0 +1,126 @@
+clc;clear;close all;
+format compact;
+addpath('AIS');addpath('PSO');addpath('RBF');
+%% Parameter setting
+d0 = 1;%单位m
+Pd0 = 31.7;%单位db，测量后的值
+PT = 0;%单位dbm,发射功率0
+n = 2.2;%路径损耗指数
+sigma= 3;%增加的0均值高斯过程的标准差
+N = 100;%收集了100组数据
+%% The setting of Reader, Reference tag and Test tag
+% 在空间的角落放置4个阅读器
+NumberOfReader =  4;
+PosReader = [-0.5,-0.5;-0.5,10.5;10.5,-0.5;10.5,10.5];
+NumberofTag = 121;    % 参考标签的数量
+PosTag = zeros(NumberofTag, 2);
+% 在 11 x 11 的空间中放置 121 个参考标签
+%每个标签相距 1 m，从坐标(0,0)到坐标(10,10)
+for iRow = 1:11
+   for jCol = 1:11
+      PosTag((iRow-1)*11+jCol,:) = [(jCol-1) (iRow-1)]; 
+   end
+end
+% 随机生成121个验证标签
+% NumberofValTag = 121;    % 验证标签的数量
+% PosValTag = 10 * rand(NumberofValTag, 2);
+NumberofValTag = 121;
+PosValTag = PosTag;
+% 在空间中随机生成1000个测试标签，用于测试定位效果。
+NumberofTestTag = 1000;     % 测试标签的数量
+PosTestTag = 10 * rand(NumberofTestTag, 2);    % 随机产生测试标签的位置
+
+PR = zeros(NumberofTag, NumberOfReader, N);        % 参考标签RSSI值
+PR_Val = zeros(NumberofValTag, NumberOfReader, N); % 验证标签RSSI值 
+PR_Test = zeros(NumberofTestTag, NumberOfReader, N); % 测试标签RSSI值
+
+%% Calculate the distances
+  % 参考标签与阅读器之间的距离
+[d_RT] = calDistance(NumberofTag, NumberOfReader, PosTag, PosReader);
+% 计算验证标签到阅读器的距离
+[d_RTV]=calDistance(NumberofValTag, NumberOfReader, PosValTag, PosReader);
+ % 测试标签与阅读器之间的距离
+[d_RTT]=calDistance(NumberofTestTag, NumberOfReader, PosTestTag, PosReader);
+
+%% Experiment setting
+
+Iters = 10;  % 最大迭代次数
+Error1 = zeros(Iters, 4); % 每次迭代的训练误差
+Error2 = zeros(Iters,4);  % 每次迭代的测试误差
+trainError = [];
+testError = [];
+
+OutputofTrain = zeros(NumberofTag,2,Iters);
+OutputofTest = zeros(NumberofTestTag,2,Iters);
+%% Start running
+for n = 1:10
+    fprintf('The loss path constant is: %d\n', n);
+for iter = 1:Iters
+%============================计算RSSI值============================%
+    Para = [PT, Pd0, d0, n, sigma, N]; % RSSI参数设置
+    [PR, PR_Val, PR_Test] = calPR(NumberofTag, NumberofValTag, ...
+             NumberofTestTag, NumberOfReader, d_RT, d_RTV, d_RTT,Para);
+%==========================数据预处理===============================%
+%================高斯滤波===================%
+    [PRFilter]=GaussianFilter(PR,NumberofTag,NumberOfReader,N);
+    [PRValFilter]=GaussianFilter(PR_Val,NumberofValTag,NumberOfReader,N);
+    [PRTestFilter]=GaussianFilter(PR_Test,NumberofTestTag,NumberOfReader,N);
+    % 归一化处理
+    PRGY = [PRFilter;PRValFilter;PRTestFilter];
+    [PRGY, PRGYMIN, PRGYMAX] = normalPR(PRGY);
+    [GYrow,GYcol] = size(PRGY);
+    % 划分训练集、验证集和测试集
+    TrainInput = PRGY(1:NumberofTag,:);
+%     ValInput = PRGY(NumberofTag+1:NumberofTag+NumberofValTag,:);
+    ValInput = TrainInput;
+    TestInput = PRGY(NumberofTag + NumberofValTag+1:end,:);
+    
+    %% ELM
+    % Initialize the parameters of ELM
+    NumberofHidden = 28;    % 隐层节点个数
+    epsilon_init = sqrt(6)./sqrt(4+NumberofHidden);
+    InputWeight_init = 2*rand(NumberofHidden, 4)*epsilon_init-epsilon_init;% 初始化输入权重
+    HiddenBias_init = 2*rand(NumberofHidden,1)*epsilon_init-epsilon_init; % 初始化隐层神经元偏置
+    % 直接使用ELM
+    [OutputofTrain(:,:,iter),OutputofTest(:,:,iter),trainTime,testTime]= ...
+        ELM(PosTag,TrainInput,TestInput,NumberofHidden,...
+        InputWeight_init,HiddenBias_init);
+    % 计算定位误差
+    Error1(iter, 1) = calLoss(NumberofTag,OutputofTrain(:,:,iter), PosTag); % 训练误差
+    [Error2(iter, 1),max_error, min_error] = ...
+        calLoss(NumberofTestTag,OutputofTest(:,:,iter), PosTestTag);
+    %% 使用免疫算法优化
+    NumberofHidden = 28;
+    [InputWeight_AIS,HiddenBias_AIS]=AIS_ELM(InputWeight_init,HiddenBias_init,...
+        NumberofHidden, NumberofTag, PosTag,TrainInput, NumberofValTag, ...
+        PosValTag, ValInput);
+       % 使用 ELM
+    [OutputofTrain(:,:,iter),OutputofTest(:,:,iter),trainTime,testTime]= ...
+        ELM(PosTag,TrainInput,TestInput,NumberofHidden,InputWeight_AIS,HiddenBias_AIS);
+    % 计算测试定位误差
+    Error1(iter, 2) = calLoss(NumberofTag,OutputofTrain(:,:,iter), PosTag); % 训练误差
+    Error2(iter, 2) = calLoss(NumberofTestTag,OutputofTest(:,:,iter), PosTestTag);
+    %% 使用PSO优化
+    [InputWeight_PSO, HiddenBias_PSO] = ...
+        PSO_ELM(InputWeight_init, HiddenBias_init, NumberofHidden, ...
+        PosTag,TrainInput, PosValTag, ValInput);
+    % 使用 ELM
+    [OutputofTrain(:,:,iter),OutputofTest(:,:,iter),trainTime,testTime]= ...
+        ELM(PosTag,TrainInput,TestInput,NumberofHidden,InputWeight_PSO,HiddenBias_PSO);
+    % 计算测试定位误差
+    Error1(iter, 3) = calLoss(NumberofTag,OutputofTrain(:,:,iter), PosTag); % 训练误差
+    Error2(iter, 3) = calLoss(NumberofTestTag,OutputofTest(:,:,iter), PosTestTag);
+    
+    %% 使用RBF
+    [error]=RBFILS(PosTag,TrainInput,TestInput,NumberofHidden,PosTestTag);
+    Error1(iter, 4) = error(1,1);
+    Error2(iter, 4) = error(1,2);
+end
+    trainError = [trainError; mean(Error1, 1)];
+    testError = [testError; mean(Error2, 1)]   % 平均误差
+end
+columns = {'ELM', 'AIS-ELM', 'PSO-ELM', 'RBF'};
+xlswrite('Results\20180611\output(N=100).xls', columns, 'TrainError', 'A1');
+xlswrite('Results\20180611\output(N=100).xls', trainError, 'TrainError', 'A2');
+xlswrite('Results\20180611\output(N=100).xls', columns, 'TestError', 'A1');
+xlswrite('Results\20180611\output(N=100).xls', testError, 'TestError', 'A2');
