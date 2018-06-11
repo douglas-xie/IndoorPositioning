@@ -5,7 +5,7 @@ function aff = affinity(AbPop, NumberofHidden, NumberofTag, TrainInput,...
 % aff 值越大，所代表的个体更优。
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 [row, col] = size(AbPop);
-NumberofInput = 4;
+NumberofInput = size(TrainInput, 2);
 C = 0.1;
 aff = zeros(row, 1);
 for irow = 1:row
@@ -18,6 +18,7 @@ for irow = 1:row
     ind = ones(1, NumberofTag);
     tempH = tempH + HiddenBias(:,ind)';
     H = 1 ./ (1 + exp(-tempH)); % sigmoid 激活函数
+    H = logsig(tempH);
     %----------------------------计算输出权重----------------------------%
     OutputWeight=pinv(H) * PosTag;
 %     OutputWeight = pinv(H'*H + 1./C) * H' * PosTag;
