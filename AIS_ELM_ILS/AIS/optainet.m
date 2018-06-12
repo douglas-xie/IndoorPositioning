@@ -15,13 +15,14 @@ function [best_ab,best_fval,it,best_set,FE]=...
 global pop_size lb ub max_it;
 pop_size = 50;
 max_it = 5;
-lb = -sqrt(6./(4+NumberofHidden)); % 输入权重隐层神经元偏置取值上限
-ub = sqrt(6./(4+NumberofHidden));
+NumberofInput = size(InputWeight, 2);
+lb = -sqrt(6)./sqrt(NumberofInput+NumberofHidden); % 输入权重隐层神经元偏置取值上限
+ub = sqrt(6)./sqrt(NumberofInput+NumberofHidden);
 FE = 0;
 
-[~, NumberofInput] = size(InputWeight);
 % Initialize the population
 AbPop = rand(pop_size, NumberofHidden*(1+NumberofInput)) .* (ub-lb) + lb;
+AbPop(1,:) = [InputWeight(:); HiddenBias(:)]';
 % Evaluate the affinity
 aff = affinity(AbPop, NumberofHidden, NumberofTag, TrainInput, PosTag,...
     NumberofValidation, ValidationInput, PosValidation); 
