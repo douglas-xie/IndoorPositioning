@@ -1,5 +1,5 @@
 function [mean_error, max_error, min_error] = calLoss(NumberOfTag,output, y)
-% Æ½·½ËðÊ§
+
 error = zeros(NumberOfTag, 1);
 for i = 1:NumberOfTag
    error(i, 1) = norm(y(i,:) - output(i,:)); 

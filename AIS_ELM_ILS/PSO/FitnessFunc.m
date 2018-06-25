@@ -13,30 +13,13 @@ function error = FitnessFunc(x,inputnum,hiddennum,inputn,outputn,...
 % 提取 
 [m, n] = size(x);
 error = zeros(m, 1);
-C = 0.1;
 for k = 1:m
 InputWeight = reshape(x(k,1:inputnum*hiddennum),hiddennum,inputnum);
 HiddenBias = reshape(x(k,inputnum*hiddennum+1:inputnum*hiddennum+hiddennum),...
     hiddennum,1);
 
-NumberOfInput = size(inputn, 1);
-
-%% training phase
-    tempH = inputn * InputWeight';
-    ind = ones(1, NumberOfInput);
-    tempH = tempH + HiddenBias(:,ind)';
-    H = 1 ./ (1 + exp(-tempH)); % sigmoid 激活函数
-    %----------------------------计算输出权重----------------------------%
-    OutputWeight=pinv(H) * outputn;
-%     OutputWeight = pinv(H'*H + 1./C) * H' * outputn;
-    
-%% validating phase
-    tempH1 = valinput * InputWeight';
-    ind = ones(1, size(valinput, 1));
-    tempH1 = tempH1 + HiddenBias(:,ind)';
-    H1 = 1 ./ (1 + exp(-tempH1)); % sigmoid 激活函数
-    
-    Output = H1 * OutputWeight;
+   % 使用ELM估计坐标值，用以计算误差
+   Output=ELM(outputn,inputn, valinput, hiddennum,InputWeight,HiddenBias);
 
 % 计算损失值
     error(k, 1) = calLoss(size(valinput, 1),Output, valoutput);

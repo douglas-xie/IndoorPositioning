@@ -7,7 +7,7 @@ Pd0 = 31.7;%单位db，测量后的值
 PT = 0;%单位dbm,发射功率0
 n = 2.2;%路径损耗指数
 sigma= 3;%增加的0均值高斯过程的标准差
-N = 1000;%收集了100组数据
+N = 100;%收集了100组数据
 %% The setting of Reader, Reference tag and Test tag
 % 在空间的角落放置4个阅读器
 NumberofReader =  4;
@@ -41,8 +41,8 @@ PR_Test = zeros(NumberofTestTag, NumberofReader, N); % 测试标签RSSI值
 %% Experiment setting
 
 Iters = 1;  % 最大迭代次数
-Error1 = zeros(Iters, NumberofReader); % 每次迭代的训练误差
-Error2 = zeros(Iters,NumberofReader);  % 每次迭代的测试误差
+Error1 = zeros(Iters, 4); % 每次迭代的训练误差
+Error2 = zeros(Iters,4);  % 每次迭代的测试误差
 trainError = [];
 testError = [];
 
@@ -50,7 +50,7 @@ testError = [];
 OutputofTrain = zeros(NumberofTag,2);
 OutputofTest = zeros(NumberofTestTag,2);
 %% Start running
-for n = 10
+for n = 2
     fprintf('The loss path constant is: %d\n', n);
 for iter = 1:Iters
 %============================计算RSSI值============================%
@@ -72,7 +72,7 @@ for iter = 1:Iters
     
     %% ELM
     % Initialize the parameters of ELM
-    NumberofHidden = 10;    % 隐层节点个数
+    NumberofHidden = 30;    % 隐层节点个数
     epsilon_init = sqrt(6)./sqrt(4+NumberofHidden); % 设置合理的阈值 
     InputWeight_init = 2*rand(NumberofHidden, NumberofReader)*epsilon_init-epsilon_init;% 初始化输入权重
     HiddenBias_init = 2*rand(NumberofHidden,1)*epsilon_init-epsilon_init; % 初始化隐层神经元偏置
@@ -85,7 +85,9 @@ for iter = 1:Iters
     [Error2(iter, 1),max_error, min_error] = ...
         calLoss(NumberofTestTag,OutputofTest, PosTestTag);
     %% 使用免疫算法优化
-    NumberofHidden = 10;
+    NumberofHidden = 30;
+    InputWeight_init = 2*rand(NumberofHidden, NumberofReader)*epsilon_init-epsilon_init;% 初始化输入权重
+    HiddenBias_init = 2*rand(NumberofHidden,1)*epsilon_init-epsilon_init; % 初始化隐层神经元偏置
     [InputWeight_AIS,HiddenBias_AIS]=AIS_ELM(InputWeight_init,HiddenBias_init,...
         NumberofHidden, NumberofTag, PosTag,TrainInput, NumberofValTag, ...
         PosValTag, ValInput);
@@ -107,7 +109,7 @@ for iter = 1:Iters
     Error2(iter, 3) = calLoss(NumberofTestTag,OutputofTest, PosTestTag);
     
     %% 使用RBF
-    [error]=RBFILS(PosTag,TrainInput,TestInput,NumberofHidden,PosTestTag);
+    [error]=RBFILS(PosTag,TrainInput,TestInput,35,PosTestTag);
     Error1(iter, 4) = error(1,1);
     Error2(iter, 4) = error(1,2);
 end
