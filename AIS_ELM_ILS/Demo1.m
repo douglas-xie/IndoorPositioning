@@ -1,5 +1,6 @@
 clc;clear;close all;
 format compact;
+addpath('utilities');
 addpath('AIS');addpath('PSO');addpath('RBF');
 %% Parameter setting
 d0 = 1;%单位m
@@ -50,7 +51,7 @@ testError = [];
 OutputofTrain = zeros(NumberofTag,2);
 OutputofTest = zeros(NumberofTestTag,2);
 %% Start running
-for n = 2
+for n = 10
     fprintf('The loss path constant is: %d\n', n);
 for iter = 1:Iters
 %============================计算RSSI值============================%

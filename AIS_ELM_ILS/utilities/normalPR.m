@@ -24,5 +24,4 @@ PRMAX = ones(irow, 1) * PRMAX;
 PRMIN = ones(irow, 1) * PRMIN;
 
 output = (PR - PRMIN)./(PRMAX - PRMIN);
-output = (PR - max(max(PR))) ./ (max(max(PR)) - min(min(PR)));
 end

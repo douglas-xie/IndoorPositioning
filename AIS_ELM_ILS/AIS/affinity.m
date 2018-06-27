@@ -14,8 +14,9 @@ for irow = 1:row
    HiddenBias = reshape(AbPop(irow,NumberofHidden*NumberofInput+1:end)',...
        NumberofHidden, 1);  
    % 使用ELM估计坐标值，用以计算误差
-   Output=ELM(PosTag,TrainInput, ValidationInput, NumberofHidden,InputWeight,HiddenBias);
+   [trainOutput, valOutput]=...
+       ELM(PosTag,TrainInput, ValidationInput, NumberofHidden,InputWeight,HiddenBias);
 
-    Error = calLoss(NumberofValidation, Output, PosValidation);
+    Error = calLoss(NumberofValidation, valOutput, PosValidation);
     aff(irow, 1) = 1./(1+Error);
 end

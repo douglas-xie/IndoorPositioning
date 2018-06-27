@@ -1,5 +1,4 @@
 function [error] = RBFILS(PosTag,TrainInput, TestInput,NumberOfHidden, PosTestTag)
-global dimension;
 AmtTag = size(TrainInput, 1);
 AmtTestTag = size(TestInput, 1);
 %%%%%%%%%%%%%训练网络%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -7,14 +6,6 @@ N_cluster = NumberOfHidden;
 %%%%%%%%%%%%%计算中心向量%%%%%%%%%%%%%%%%%%%%%
 [center,U,obj_fcn] = fcm(TrainInput,N_cluster); %模糊聚类确定中心值
 %确定隐元宽度，即RBF方差，求解各个中心的平均宽度。
-% for i = 1:N_cluster
-%     eucenter = zeros(N_cluster, 1);
-%     for j = 1:N_cluster
-%         eucenter(j, 1) = norm(center(i,:) - center(j,:));
-%     end
-%     % 每个RBF核的宽度
-%     rbfvar(i, 1) = sum(eucenter);
-% end      
 for i = 1:N_cluster
     eucenter=0;
     for j = 1:N_cluster
@@ -71,13 +62,16 @@ error(1,2) = calLoss(AmtTestTag, resrbf1, PosTestTag); % 测试误差
 %  %由最优抗体确定RBF中心
 %         center=reshape(best_ab,dimension ,N_cluster)';
 %          %确定隐元宽度，即RBF方差，求解各个中心的平均宽度。
-%          for i = 1:N_cluster
-%             eucenter = zeros(N_cluster, 1);
+%         for i = 1:N_cluster
+%             eucenter=0;
 %             for j = 1:N_cluster
-%                 eucenter(j, 1) = norm(center(i,:) - center(j,:));
+%                 if i~=j
+%                     eucenter = eucenter+norm(center(i,:)-center(j,:));           
+%                 end
 %             end
-%             rbfvar(i, 2) = sum(eucenter);
-%          end
+%             rbfvar(i,2)=mean(eucenter);
+%         end
+% 
 % %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%通过伪逆确定权值%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %         for i = 1:(N_cluster)
 %             for k = 1:AmtTag

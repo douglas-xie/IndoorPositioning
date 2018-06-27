@@ -7,5 +7,5 @@ end
 mean_error = mean(error(:, 1));
 max_error = max(error);
 min_error = min(error);
-% error = sqrt(mse(y' - output'));
+% mean_error = mse(y' - output');
 end
